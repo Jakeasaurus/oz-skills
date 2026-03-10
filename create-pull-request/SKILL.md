@@ -10,8 +10,6 @@ This skill guides you through creating a well-structured GitHub pull request tha
 
 ## Prerequisites Check
 
-Before proceeding, verify the following:
-
 ### 1. Check if `gh` CLI is installed
 
 ```bash
@@ -254,35 +252,57 @@ Decide whether to create a draft PR or a regular PR based on the following:
 
 For a regular PR:
 ```bash
-gh pr create --title "PR_TITLE" --body "PR_BODY" --base main
+gh pr create --title "PR_TITLE" --body "$(cat <<'EOF'
+PR_BODY
+EOF
+)" --base main
 ```
 
 For a draft PR:
 ```bash
-gh pr create --title "PR_TITLE" --body "PR_BODY" --base main --draft
+gh pr create --title "PR_TITLE" --body "$(cat <<'EOF'
+PR_BODY
+EOF
+)" --base main --draft
 ```
 
 ## Post-Creation
 
-After creating the PR:
+### 1. Monitor CI
 
-### 1. Open PR in browser for verification
-
-Immediately open the PR in the browser to verify it was created correctly:
+After creating the PR, watch CI runs as they come in:
 
 ```bash
-gh pr view --web
+# Find the triggered run:
+gh run list --repo <owner>/<repo> --branch $(git branch --show-current) --limit 1 --json databaseId,status,workflowName
+
+# Watch it to completion:
+gh run watch <run-id> --repo <owner>/<repo> --exit-status
+
+# Get a pass/fail summary per linter/job:
+gh run view <run-id> --repo <owner>/<repo> --log-failed 2>&1 | grep -E "Errors found|Successfully linted"
 ```
 
-This allows you to:
-- Verify the PR title and description render correctly
-- Check that all links work (issue references, etc.)
-- Ensure the diff looks as expected
-- See any immediate CI status
+**Note**: `--log-failed` may return empty if logs have expired or the run was a rerun. In that case, rerun the failed jobs to get fresh logs:
+```bash
+gh run rerun <run-id> --repo <owner>/<repo> --failed
+```
 
-### 2. Remind about CI checks
+### 2. Update PR Description After Additional Commits
 
-Tests and linting will run automatically. Monitor the checks to ensure they pass.
+If CI requires additional fix commits, update the PR description to reflect all changes:
+
+```bash
+# Option A: gh pr edit (may fail with GraphQL deprecation warnings)
+gh pr edit <number> --repo <owner>/<repo> --body "UPDATED_BODY"
+
+# Option B: REST API fallback (reliable)
+cat > /tmp/pr_body.md << 'EOF'
+UPDATED_BODY
+EOF
+gh api repos/<owner>/<repo>/pulls/<number> \
+  --method PATCH --field body=@/tmp/pr_body.md --jq '.html_url'
+```
 
 ### 3. Suggest next steps (if needed)
 
@@ -306,6 +326,9 @@ Tests and linting will run automatically. Monitor the checks to ensure they pass
 4. **Merge conflicts**: Branch conflicts with base
    - Guide user through resolving conflicts or rebasing
 
+5. **`gh pr edit` fails with GraphQL deprecation error**
+   - Use the REST API fallback shown in the "Update PR Description" section above
+
 ## Summary Checklist
 
 Before finalizing, ensure:
@@ -321,4 +344,5 @@ Before finalizing, ensure:
 - [ ] PR description follows template (if template exists)
 - [ ] Appropriate type of change is selected
 - [ ] Correct draft/regular status chosen
-- [ ] PR opened in browser for verification
+- [ ] CI monitored and passing
+- [ ] PR description updated to reflect all commits if additional fixes were pushed

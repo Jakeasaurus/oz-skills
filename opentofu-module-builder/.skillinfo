@@ -1,0 +1,21 @@
+# OpenTofu Module Builder Skill
+
+Created: 2026-02-27
+Purpose: Build production-ready OpenTofu/Terraform AWS modules following terraform-modules repository patterns
+
+## Structure
+- SKILL.md: Main workflow and instructions
+- references/module-patterns.md: Coding patterns from existing modules
+- references/aws-best-practices.md: Security defaults and AWS-specific guidance
+
+## Usage
+This skill triggers when creating new infrastructure modules, refactoring existing modules, or extending module capabilities for AWS resources.
+
+## Key Features
+- Step-by-step module creation workflow
+- Security-first defaults
+- Validation patterns
+- Testing guidance
+- README templates with terraform-docs integration
+- Dynamic block patterns
+- Module complexity guidelines
